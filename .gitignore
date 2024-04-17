@@ -1,0 +1,15 @@
+*.m~
+*.bin
+*.png
+*.fig
+*.mat
+*.jpg
+*.tiff
+*.eps*
+*.doc*
+*.pdf
+*.ps
+*.asv
+*.DS_Store
+*.gif
+*.mat
