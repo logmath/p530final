@@ -1,6 +1,9 @@
 % This script will perform a lasso regression using the rocket data as a
 % function of weather parameters.
 
+% You will need to download the appropriate files from box since data won't
+% be stored on git.
+
 % initialize
 clear; clc; close all;
 
