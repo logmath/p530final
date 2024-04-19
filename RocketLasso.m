@@ -10,13 +10,13 @@ clear; clc; close all;
 % define constants
 lamrange = logspace(-3,3,100)'; % lambda values for the LASSO process
 tol = 1e-8; % when is a parameter essentially zero?
-maxer = 1.5; % maximum acceptable error, used to figure out which parameter to use.
+maxer = 0.5; % maximum acceptable error, used to figure out which parameter to use.
 
-parstrs = {'Avg Press';'Avg Temp';'Wind Dir';'Avg Wind Speed';'Prop Speed';'Mic Press';'Mic Temp';'Mic Wind Speed'};
+parstrs = {'Avg Press';'Avg Temp';'Avg Wind Dir';'Avg Wind Speed';'Prop Speed';'Mic Press';'Mic Temp';'Mic Wind Speed';'Source Wind Dir'};
 % read in the weather data, N is the number of measurements and M is the number of weather parameters
 load("AverageFalcon9WeatherMetrics.mat")
 
-WeatherData = [AvgPress;AvgTemp;mod(AvgWdir,360);AvgWs;EffPropSpeed';ReceiverPress; ReceiverTemp; ReceiverWs]'; % M x N matrix containing the weather parameter for each measurement
+WeatherData = [AvgPress;AvgTemp;mod(AvgWdir,360);AvgWs;EffPropSpeed';ReceiverPress; ReceiverTemp; ReceiverWs; SourceWdir]'; % M x N matrix containing the weather parameter for each measurement
 % which data to fit to. N x 1 vector
 y = importdL('530 Project.xlsx'); % difference in predicted level
 %y = importOASPL('530 Project.xlsx'); % raw OASPL
@@ -34,14 +34,14 @@ par0 = ones(M,1); % initial parameter values
 A = log10(WeatherData); % create model map
 
 fhat = @(params) A*params; % predict the dB difference
-ferror = @(params) norm(fhat(params) - y)^2; % cost of this set of parameters
+ferror = @(params) norm(fhat(params) - y); % cost of this set of parameters
 
 parfits = zeros([M,length(lamrange)]); % place to keep the parameters
 errors = zeros([length(lamrange),1]); % place to keep the erorrs
 
 for i = 1:length(lamrange)
     lam = lamrange(i);
-    fLasso = @(params) ferror(params) + lam*sum(abs(params)); % function for lass regression
+    fLasso = @(params) ferror(params)^2 + lam*sum(abs(params)); % function for lass regression
     
     parfit = fmincon(fLasso,par0,[],[]);
 
@@ -54,7 +54,7 @@ end % i = 1:length(lamrange)
 nonzero = sum(abs(parfits)>tol);
 
 % find the lamnda value for the best parameter fit within our error
-erind= find(errors>1.5,1);
+erind= find(errors>maxer,1);
 lamfit = lamrange(erind);
 parfit = parfits(:,erind);
 
@@ -78,6 +78,7 @@ ax = gca;
 ax.XScale = 'log';
 ax.YTickLabel = parstrs;
 cb = colorbar;
+cb.Label.String = 'Parameter Significance';
 colormap(diffcmap)
 ax.CLim = [-1,1]*abs(max(clim));
 xlabel('\lambda')
