@@ -91,7 +91,7 @@ xlabel('\lambda')
 
 % significance colormap
 sig = parfits./max(abs(parfits'))'; % normalized parameter values
-%sig = log10(abs(parfits));
+sig = log10(abs(parfits));
 
 figure()
 imagesc(lamrange,1:M,sig);
@@ -100,10 +100,10 @@ ax = gca;
 ax.XScale = 'log';
 ax.YTickLabel = parstrs;
 cb = colorbar;
-cb.Label.String = 'Parameter importance';
-%colormap jet
-colormap(diffcmap)
-ax.CLim = [-1,1];%[-1,1]*abs(max(clim));
+cb.Label.String = 'log_{10} |value|';
+colormap sky
+%colormap(diffcmap)
+%ax.CLim = [-1,1];%[-1,1]*abs(max(clim));
 xlabel('\lambda')
 
 
