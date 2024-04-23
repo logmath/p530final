@@ -10,13 +10,14 @@ clear; clc; close all;
 % define constants
 lamrange = logspace(-3,3,100)'; % lambda values for the LASSO process
 tol = 1e-8; % when is a parameter essentially zero?
-maxer = 0.5; % maximum acceptable error, used to figure out which parameter to use.
+maxer = [1.5,2]; % maximum acceptable error, used to figure out which parameter to use.
+ercolvec = ['r','g'];
 
-parstrs = {'Avg Press';'Avg Temp';'Avg Wind Dir';'Avg Wind Speed';'Prop Speed';'Mic Press';'Mic Temp';'Mic Wind Speed';'Source Wind Dir'};
+parstrs = {'Avg Press';'Avg Temp';'Avg Wind';'Prop Speed';'Mic Temp';'Mic Wind';'Rocket Temp';'Rocket Wind'};
 % read in the weather data, N is the number of measurements and M is the number of weather parameters
 load("AverageFalcon9WeatherMetrics.mat")
 
-WeatherData = [AvgPress;AvgTemp;mod(AvgWdir,360);AvgWs;EffPropSpeed';ReceiverPress; ReceiverTemp; ReceiverWs; SourceWdir]'; % M x N matrix containing the weather parameter for each measurement
+WeatherData = [AvgPress; AvgTemp+273; AvgWs; EffPropSpeed'; ReceiverTemp+273; ReceiverWs; SourceTemp+273; SourceWs]'; % M x N matrix containing the weather parameter for each measurement
 % which data to fit to. N x 1 vector
 y = importdL('530 Project.xlsx'); % difference in predicted level
 %y = importOASPL('530 Project.xlsx'); % raw OASPL
@@ -54,9 +55,14 @@ end % i = 1:length(lamrange)
 nonzero = sum(abs(parfits)>tol);
 
 % find the lamnda value for the best parameter fit within our error
-erind= find(errors>maxer,1);
-lamfit = lamrange(erind);
-parfit = parfits(:,erind);
+
+lamfits = zeros(size(maxer));
+parlam = zeros([length(par0),length(maxer)]);
+for i = 1:length(maxer)
+    erind= find(errors>maxer(i),1);
+    lamfit(i) = lamrange(erind);
+    parlam(:,i) = parfits(:,erind);
+end
 
 % plot the results
 figure()
@@ -69,7 +75,7 @@ yyaxis right
 semilogx(lamrange,nonzero)
 ylabel('Number of nonzero parameters')
 
-% colormap
+% value colormap
 load('diffcmap.mat')
 figure()
 imagesc(lamrange,1:M,parfits);
@@ -78,7 +84,36 @@ ax = gca;
 ax.XScale = 'log';
 ax.YTickLabel = parstrs;
 cb = colorbar;
-cb.Label.String = 'Parameter Significance';
+cb.Label.String = 'Parameter value';
 colormap(diffcmap)
 ax.CLim = [-1,1]*abs(max(clim));
 xlabel('\lambda')
+
+% significance colormap
+sig = parfits./max(abs(parfits'))'; % normalized parameter values
+%sig = log10(abs(parfits));
+
+figure()
+imagesc(lamrange,1:M,sig);
+xline(lamfit)
+ax = gca;
+ax.XScale = 'log';
+ax.YTickLabel = parstrs;
+cb = colorbar;
+cb.Label.String = 'Parameter importance';
+%colormap jet
+colormap(diffcmap)
+ax.CLim = [-1,1];%[-1,1]*abs(max(clim));
+xlabel('\lambda')
+
+
+% create the compared results
+figure()
+plot(y,'bo','MarkerFaceColor','b','DisplayName','Measured')
+hold on
+for i = 1:length(maxer)
+    plot(fhat(parlam(:,i)),['o',ercolvec(i)],'MarkerFaceColor',ercolvec(i),'DisplayName',sprintf('Predicted (%0.1f dB)',maxer(i)))
+end
+legend('location','best')
+xlabel('Measurement')
+ylabel('\Delta dB')
